@@ -20,7 +20,7 @@ export const TideGraph: React.FC<TideGraphProps> = ({ tideData }) => {
   const windowWidth = Dimensions.get('window').width;
   const width = Math.min(windowWidth - 64, 600);
   const height = width * 0.5;
-  const padding = { top: 30, right: 30, bottom: 40, left: 50 };
+  const padding = { top: 30, right: 30, bottom: 40, left: 60 };
 
   const styles = StyleSheet.create({
     container: {
@@ -226,7 +226,7 @@ export const TideGraph: React.FC<TideGraphProps> = ({ tideData }) => {
                 strokeWidth="1"
               />
               <SvgText
-                x={padding.left - 10}
+                x={padding.left - 15}
                 y={yScale(tick)}
                 textAnchor="end"
                 alignmentBaseline="middle"
