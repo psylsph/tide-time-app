@@ -6,14 +6,17 @@ import { TideStation } from './src/data/ukTideStations';
 import { getTideData } from './src/services/tideService';
 import { format } from 'date-fns';
 import { StatusBar } from 'expo-status-bar';
+import { TideGraph } from './src/components/TideGraph';
 
 const theme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
-    primary: '#007AFF',
-    background: '#F2F2F7',
+    primary: '#1E88E5', // Material Blue 600
+    secondary: '#64B5F6', // Material Blue 300
+    background: '#E3F2FD', // Material Blue 50
     surface: '#FFFFFF',
+    surfaceVariant: '#F5F5F5',
   },
 };
 
@@ -42,10 +45,12 @@ export default function App() {
         <StatusBar style="dark" />
         
         <Surface style={styles.header} elevation={0}>
-          <Text variant="headlineLarge" style={styles.headerTitle}>UK Tide Times</Text>
-          {selectedStation && (
-            <Text variant="titleMedium" style={styles.headerSubtitle}>{selectedStation.name}</Text>
-          )}
+          <View style={styles.headerContent}>
+            <Text variant="headlineLarge" style={styles.headerTitle}>UK Tide Times</Text>
+            {selectedStation && (
+              <Text variant="titleMedium" style={styles.headerSubtitle}>{selectedStation.name}</Text>
+            )}
+          </View>
         </Surface>
 
         <ScrollView 
@@ -61,12 +66,12 @@ export default function App() {
 
             {selectedStation && (
               <View style={styles.tideInfo}>
-                <Surface style={styles.dateNav} elevation={0}>
+                <View style={styles.dateNav}>
                   <IconButton
                     icon="chevron-left"
                     mode="contained"
-                    containerColor="rgba(0, 122, 255, 0.1)"
-                    iconColor="#007AFF"
+                    containerColor="rgba(30, 136, 229, 0.1)"
+                    iconColor={theme.colors.primary}
                     size={24}
                     onPress={() => handleDateChange(-1)}
                   />
@@ -76,53 +81,26 @@ export default function App() {
                   <IconButton
                     icon="chevron-right"
                     mode="contained"
-                    containerColor="rgba(0, 122, 255, 0.1)"
-                    iconColor="#007AFF"
+                    containerColor="rgba(30, 136, 229, 0.1)"
+                    iconColor={theme.colors.primary}
                     size={24}
                     onPress={() => handleDateChange(1)}
                   />
-                </Surface>
-
-                <View style={styles.tidesGrid}>
-                  {tideData.map((tide, index) => (
-                    <Surface key={index} style={styles.tideCard} elevation={0}>
-                      <View style={styles.tideHeader}>
-                        <View style={[
-                          styles.tideType,
-                          { backgroundColor: tide.type === 'high' ? 'rgba(0, 122, 255, 0.1)' : 'rgba(88, 86, 214, 0.1)' }
-                        ]}>
-                          <Text style={[
-                            styles.tideTypeText,
-                            { color: tide.type === 'high' ? '#007AFF' : '#5856D6' }
-                          ]}>
-                            {tide.type === 'high' ? '🌊 High Tide' : '⬇️ Low Tide'}
-                          </Text>
-                        </View>
-                      </View>
-                      
-                      <View style={styles.tideDetails}>
-                        <Text variant="displaySmall" style={styles.heightText}>
-                          {tide.height.toFixed(1)}m
-                        </Text>
-                        <Text variant="titleLarge" style={styles.timeText}>
-                          {format(new Date(tide.time), 'HH:mm')}
-                        </Text>
-                      </View>
-                    </Surface>
-                  ))}
                 </View>
-              </View>
-            )}
 
-            {!selectedStation && (
-              <Surface style={styles.welcomeCard} elevation={0}>
-                <Text variant="headlineSmall" style={styles.welcomeTitle}>
-                  Welcome to UK Tide Times
-                </Text>
-                <Text variant="bodyLarge" style={styles.welcomeText}>
-                  Search for a location above to view tide times and heights.
-                </Text>
-              </Surface>
+                <TideGraph tideData={tideData} />
+
+                {!selectedStation && (
+                  <Surface style={styles.welcomeCard} elevation={0}>
+                    <Text variant="headlineSmall" style={styles.welcomeTitle}>
+                      Welcome to UK Tide Times
+                    </Text>
+                    <Text variant="bodyLarge" style={styles.welcomeText}>
+                      Select a location to view tide information
+                    </Text>
+                  </Surface>
+                )}
+              </View>
             )}
           </View>
         </ScrollView>
@@ -134,7 +112,7 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#E3F2FD',
   },
   header: {
     paddingHorizontal: 16,
@@ -144,19 +122,39 @@ const styles = StyleSheet.create({
       default: 24,
     }),
     paddingBottom: 16,
-    backgroundColor: 'rgba(242, 242, 247, 0.92)',
+    backgroundColor: 'rgba(227, 242, 253, 0.92)',
     borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(60, 60, 67, 0.29)',
+    borderBottomColor: 'rgba(30, 136, 229, 0.2)',
+    ...Platform.select({
+      android: {
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0 2px 8px rgba(30, 136, 229, 0.1)',
+      },
+      ios: {
+        shadowColor: '#1E88E5',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+    }),
+  },
+  headerContent: {
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 34,
     fontWeight: '700',
     letterSpacing: 0.41,
+    color: '#1E88E5',
+    textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: 20,
-    color: '#8E8E93',
+    color: '#64B5F6',
     marginTop: 4,
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
@@ -180,53 +178,27 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      android: {
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0 2px 8px rgba(30, 136, 229, 0.1)',
+      },
+      ios: {
+        shadowColor: '#1E88E5',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+    }),
   },
   dateText: {
     flex: 1,
     textAlign: 'center',
-    color: '#000000',
+    color: '#1E88E5',
     fontSize: 17,
     letterSpacing: -0.41,
-  },
-  tidesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  tideCard: {
-    flex: 1,
-    minWidth: Platform.select({ web: 300, default: '45%' }),
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-  },
-  tideHeader: {
-    marginBottom: 16,
-  },
-  tideType: {
-    alignSelf: 'flex-start',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-  },
-  tideTypeText: {
-    fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: -0.24,
-  },
-  tideDetails: {
-    alignItems: 'center',
-  },
-  heightText: {
-    fontSize: 48,
-    fontWeight: '700',
-    color: '#000000',
-    letterSpacing: 0.41,
-  },
-  timeText: {
-    fontSize: 28,
-    color: '#8E8E93',
-    marginTop: 8,
   },
   welcomeCard: {
     padding: 24,
@@ -234,13 +206,28 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
+    ...Platform.select({
+      android: {
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0 2px 8px rgba(30, 136, 229, 0.1)',
+      },
+      ios: {
+        shadowColor: '#1E88E5',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+    }),
   },
   welcomeTitle: {
     textAlign: 'center',
     marginBottom: 8,
+    color: '#1E88E5',
   },
   welcomeText: {
     textAlign: 'center',
-    color: '#8E8E93',
+    color: '#64B5F6',
   },
 });

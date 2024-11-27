@@ -47,6 +47,12 @@ npm start
 
 4. Follow the Expo CLI instructions to run the app on your preferred platform (iOS, Android, or Web)
 
+## DeEployment to Netlify
+```bash
+netlify build
+netlify deploy --prod --dir dist
+```
+
 ## Development
 
 The project uses TypeScript for type safety and follows modern React Native best practices. Key directories include:

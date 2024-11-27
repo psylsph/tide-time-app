@@ -32,7 +32,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
 
   return (
     <View style={styles.container}>
-      <Surface style={[styles.searchContainer, { backgroundColor: theme.colors.elevation.level1 }]}>
+      <Surface style={[styles.searchContainer, { backgroundColor: theme.colors.surface }]}>
         <Searchbar
           placeholder="Search for a location..."
           onChangeText={setSearchQuery}
@@ -42,6 +42,12 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
           iconColor={theme.colors.primary}
           onFocus={() => setIsSearchFocused(true)}
           elevation={0}
+          theme={{
+            colors: {
+              ...theme.colors,
+              surfaceVariant: 'rgba(30, 136, 229, 0.08)',
+            },
+          }}
         />
       </Surface>
 
@@ -58,23 +64,35 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
                   <List.Icon
                     {...props}
                     icon="map-marker"
-                    color={station.id === currentStationId ? theme.colors.primary : theme.colors.onSurfaceVariant}
+                    color={station.id === currentStationId ? theme.colors.primary : theme.colors.secondary}
                   />
                 )}
                 style={[
                   styles.listItem,
-                  station.id === currentStationId && styles.selectedItem
+                  station.id === currentStationId && {
+                    backgroundColor: 'rgba(30, 136, 229, 0.08)',
+                  }
                 ]}
                 titleStyle={[
                   styles.listItemTitle,
-                  station.id === currentStationId && styles.selectedItemText
+                  station.id === currentStationId && {
+                    color: theme.colors.primary,
+                    fontWeight: '500',
+                  }
                 ]}
-                descriptionStyle={styles.listItemDescription}
+                descriptionStyle={[
+                  styles.listItemDescription,
+                  station.id === currentStationId && {
+                    color: theme.colors.secondary,
+                  }
+                ]}
               />
             ))
           ) : (
             <View style={styles.noResults}>
-              <Text style={styles.noResultsText}>No locations found</Text>
+              <Text style={[styles.noResultsText, { color: theme.colors.secondary }]}>
+                No locations found
+              </Text>
             </View>
           )}
         </Surface>
@@ -88,17 +106,20 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   searchContainer: {
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     ...Platform.select({
+      android: {
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0 2px 8px rgba(30, 136, 229, 0.1)',
+      },
       ios: {
-        shadowColor: '#000',
+        shadowColor: '#1E88E5',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
-      },
-      default: {
-        elevation: 2,
       },
     }),
   },
@@ -112,38 +133,40 @@ const styles = StyleSheet.create({
   },
   resultsContainer: {
     marginTop: 8,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     maxHeight: 300,
+    backgroundColor: '#FFFFFF',
     ...Platform.select({
+      android: {
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0 2px 8px rgba(30, 136, 229, 0.1)',
+      },
       ios: {
-        shadowColor: '#000',
+        shadowColor: '#1E88E5',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
       },
-      default: {
-        elevation: 2,
-      },
     }),
   },
   listItem: {
-    paddingVertical: 8,
-  },
-  selectedItem: {
-    backgroundColor: 'rgba(0, 122, 255, 0.08)',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(30, 136, 229, 0.1)',
   },
   listItemTitle: {
     fontSize: 17,
     letterSpacing: -0.41,
     marginBottom: 2,
-  },
-  selectedItemText: {
-    color: '#007AFF',
+    color: '#1E88E5',
   },
   listItemDescription: {
     fontSize: 15,
     letterSpacing: -0.24,
+    color: '#64B5F6',
   },
   noResults: {
     padding: 16,
@@ -151,7 +174,6 @@ const styles = StyleSheet.create({
   },
   noResultsText: {
     fontSize: 17,
-    color: '#8E8E93',
     letterSpacing: -0.41,
   },
 });
