@@ -121,8 +121,20 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
             filteredStations.map((station) => (
               <List.Item
                 key={station.id}
-                title={() => <Text style={styles.listItemTitle}>{station.name}</Text>}
-                description={() => <Text style={styles.listItemDescription}>{station.region}</Text>}
+                titleStyle={[
+                  styles.listItemTitle,
+                  station.id === currentStationId && {
+                    color: theme.colors.primary,
+                  }
+                ]}
+                descriptionStyle={[
+                  styles.listItemDescription,
+                  station.id === currentStationId && {
+                    color: theme.colors.secondary,
+                  }
+                ]}
+                title={station.name}
+                description={station.region}
                 onPress={() => handleStationSelect(station)}
                 left={props => (
                   <List.Icon

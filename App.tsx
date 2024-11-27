@@ -103,7 +103,7 @@ export default function App() {
               currentStationId={selectedStation?.id || ''}
             />
 
-            {selectedStation && (
+            {selectedStation ? (
               <View style={styles.tideInfo}>
                 <View style={styles.dateNav}>
                   <IconButton
@@ -128,18 +128,16 @@ export default function App() {
                 </View>
 
                 <TideGraph tideData={tideData} />
-
-                {!selectedStation && (
-                  <Surface style={styles.welcomeCard} elevation={0}>
-                    <Text variant="headlineSmall" style={styles.welcomeTitle}>
-                      Welcome to UK Tide Times
-                    </Text>
-                    <Text variant="bodyLarge" style={styles.welcomeText}>
-                      Select a location to view tide information
-                    </Text>
-                  </Surface>
-                )}
               </View>
+            ) : (
+              <Surface style={styles.welcomeCard} elevation={0}>
+                <Text variant="headlineSmall" style={styles.welcomeTitle}>
+                  Welcome to UK Tide Times
+                </Text>
+                <Text variant="bodyLarge" style={styles.welcomeText}>
+                  Select a location to view tide information
+                </Text>
+              </Surface>
             )}
           </View>
         </ScrollView>
