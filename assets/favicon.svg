@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="256" cy="256" r="256" fill="#E3F2FD"/>
+  
+  <!-- Wave Pattern -->
+  <path d="M96 256C144 256 144 224 192 224C240 224 240 256 288 256C336 256 336 224 384 224C432 224 432 256 480 256" 
+        stroke="#0D47A1" 
+        stroke-width="32" 
+        stroke-linecap="round"
+        fill="none">
+    <animate attributeName="d" 
+             dur="3s" 
+             repeatCount="indefinite" 
+             values="
+               M96 256C144 256 144 224 192 224C240 224 240 256 288 256C336 256 336 224 384 224C432 224 432 256 480 256;
+               M96 256C144 256 144 288 192 288C240 288 240 256 288 256C336 256 336 288 384 288C432 288 432 256 480 256;
+               M96 256C144 256 144 224 192 224C240 224 240 256 288 256C336 256 336 224 384 224C432 224 432 256 480 256"
+    />
+  </path>
+  
+  <!-- Second Wave -->
+  <path d="M32 320C80 320 80 288 128 288C176 288 176 320 224 320C272 320 272 288 320 288C368 288 368 320 416 320" 
+        stroke="#1976D2" 
+        stroke-width="24" 
+        stroke-linecap="round"
+        fill="none">
+    <animate attributeName="d" 
+             dur="2.5s" 
+             repeatCount="indefinite" 
+             values="
+               M32 320C80 320 80 288 128 288C176 288 176 320 224 320C272 320 272 288 320 288C368 288 368 320 416 320;
+               M32 320C80 320 80 352 128 352C176 352 176 320 224 320C272 320 272 352 320 352C368 352 368 320 416 320;
+               M32 320C80 320 80 288 128 288C176 288 176 320 224 320C272 320 272 288 320 288C368 288 368 320 416 320"
+    />
+  </path>
+</svg>

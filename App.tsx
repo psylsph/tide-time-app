@@ -7,16 +7,30 @@ import { getTideData } from './src/services/tideService';
 import { format } from 'date-fns';
 import { StatusBar } from 'expo-status-bar';
 import { TideGraph } from './src/components/TideGraph';
+import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
+import * as SplashScreen from 'expo-splash-screen';
 
 const theme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
-    primary: '#1E88E5', // Material Blue 600
-    secondary: '#64B5F6', // Material Blue 300
-    background: '#E3F2FD', // Material Blue 50
+    primary: '#1E88E5',
+    secondary: '#64B5F6',
+    background: '#E3F2FD',
     surface: '#FFFFFF',
     surfaceVariant: '#F5F5F5',
+  },
+  fonts: {
+    ...MD3LightTheme.fonts,
+    regular: {
+      fontFamily: 'Poppins_400Regular',
+    },
+    medium: {
+      fontFamily: 'Poppins_500Medium',
+    },
+    bold: {
+      fontFamily: 'Poppins_700Bold',
+    },
   },
 };
 
@@ -25,6 +39,26 @@ export default function App() {
   const [tideData, setTideData] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const windowWidth = Dimensions.get('window').width;
+
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+  });
+
+  useEffect(() => {
+    async function prepare() {
+      await SplashScreen.preventAutoHideAsync();
+    }
+    prepare();
+  }, []);
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
 
   useEffect(() => {
     if (selectedStation) {
@@ -38,6 +72,10 @@ export default function App() {
     newDate.setDate(newDate.getDate() + days);
     setSelectedDate(newDate);
   };
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <PaperProvider theme={theme}>
@@ -59,6 +97,7 @@ export default function App() {
           showsVerticalScrollIndicator={false}
         >
           <View style={[styles.content, { width: windowWidth > 744 ? 680 : windowWidth }]}>
+
             <LocationSearch
               onLocationSelect={setSelectedStation}
               currentStationId={selectedStation?.id || ''}
@@ -144,14 +183,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 34,
-    fontWeight: '700',
-    letterSpacing: 0.41,
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 32,
+    letterSpacing: 0.25,
     color: '#1E88E5',
     textAlign: 'center',
   },
   headerSubtitle: {
-    fontSize: 20,
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 18,
     color: '#64B5F6',
     marginTop: 4,
     textAlign: 'center',
@@ -194,11 +234,12 @@ const styles = StyleSheet.create({
     }),
   },
   dateText: {
+    fontFamily: 'Poppins_500Medium',
     flex: 1,
     textAlign: 'center',
     color: '#1E88E5',
-    fontSize: 17,
-    letterSpacing: -0.41,
+    fontSize: 16,
+    letterSpacing: 0,
   },
   welcomeCard: {
     padding: 24,
@@ -222,11 +263,13 @@ const styles = StyleSheet.create({
     }),
   },
   welcomeTitle: {
+    fontFamily: 'Poppins_600SemiBold',
     textAlign: 'center',
     marginBottom: 8,
     color: '#1E88E5',
   },
   welcomeText: {
+    fontFamily: 'Poppins_400Regular',
     textAlign: 'center',
     color: '#64B5F6',
   },
