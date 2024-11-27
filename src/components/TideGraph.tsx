@@ -259,28 +259,34 @@ export const TideGraph: React.FC<TideGraphProps> = ({ tideData }) => {
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          {tideData.map((tide, index) => (
-            <React.Fragment key={index}>
-              <Circle
-                cx={xScale(parseISO(tide.time))}
-                cy={yScale(tide.height)}
-                r="6"
-                fill={theme.colors.surface}
-                stroke={theme.colors.primary}
-                strokeWidth="2.5"
-              />
-              <SvgText
-                x={xScale(parseISO(tide.time))}
-                y={yScale(tide.height) - 15}
-                textAnchor="middle"
-                fontSize="13"
-                fontFamily="Poppins_500Medium"
-                fill={theme.colors.primary}
-              >
-                {tide.height.toFixed(1)}m
-              </SvgText>
-            </React.Fragment>
-          ))}
+          {tideData.map((tide, index) => {
+            const x = xScale(parseISO(tide.time));
+            const y = yScale(tide.height);
+            const isNearYAxis = x < padding.left + 40;
+            
+            return (
+              <React.Fragment key={index}>
+                <Circle
+                  cx={x}
+                  cy={y}
+                  r="6"
+                  fill={theme.colors.surface}
+                  stroke={theme.colors.primary}
+                  strokeWidth="2.5"
+                />
+                <SvgText
+                  x={x + (isNearYAxis ? 15 : 0)}
+                  y={y - 15}
+                  textAnchor={isNearYAxis ? "start" : "middle"}
+                  fontSize="13"
+                  fontFamily="Poppins_500Medium"
+                  fill={theme.colors.primary}
+                >
+                  {tide.height.toFixed(1)}m
+                </SvgText>
+              </React.Fragment>
+            );
+          })}
         </Svg>
       </View>
       <View style={styles.tideReadingsContainer}>
