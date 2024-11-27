@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Dimensions, Platform } from 'react-native';
 import { Provider as PaperProvider, Text, IconButton, MD3LightTheme, Surface } from 'react-native-paper';
 import { LocationSearch } from './src/components/LocationSearch';
-import { TideStation } from './src/data/ukTideStations';
+import { TideStation, ukTideStations } from './src/data/ukTideStations';
 import { getTideData } from './src/services/tideService';
 import { format } from 'date-fns';
 import { StatusBar } from 'expo-status-bar';
 import { TideGraph } from './src/components/TideGraph';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Location from 'expo-location';
+import { findNearestStation } from './src/utils/locationUtils';
 
 const theme = {
   ...MD3LightTheme,
@@ -19,6 +21,7 @@ const theme = {
     background: '#E3F2FD',
     surface: '#FFFFFF',
     surfaceVariant: '#F5F5F5',
+    error: '#B00020',
   },
   fonts: {
     ...MD3LightTheme.fonts,
@@ -38,6 +41,7 @@ export default function App() {
   const [selectedStation, setSelectedStation] = useState<TideStation | null>(null);
   const [tideData, setTideData] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [locationError, setLocationError] = useState<string | null>(null);
   const windowWidth = Dimensions.get('window').width;
 
   const [fontsLoaded] = useFonts({
@@ -52,6 +56,36 @@ export default function App() {
       await SplashScreen.preventAutoHideAsync();
     }
     prepare();
+  }, []);
+
+  useEffect(() => {
+    async function getLocation() {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setLocationError('Permission to access location was denied');
+          return;
+        }
+
+        const location = await Location.getCurrentPositionAsync({});
+        const nearest = findNearestStation(
+          location.coords.latitude,
+          location.coords.longitude,
+          ukTideStations
+        );
+
+        if (nearest) {
+          setSelectedStation(nearest);
+        }
+      } catch (error) {
+        setLocationError('Error getting location');
+        console.error('Location error:', error);
+      }
+    }
+
+    if (!selectedStation) {
+      getLocation();
+    }
   }, []);
 
   useEffect(() => {
@@ -102,6 +136,14 @@ export default function App() {
               onLocationSelect={setSelectedStation}
               currentStationId={selectedStation?.id || ''}
             />
+
+            {locationError && !selectedStation && (
+              <Surface style={[styles.welcomeCard, { marginBottom: 16 }]} elevation={0}>
+                <Text style={[styles.welcomeText, { color: theme.colors.error }]}>
+                  {locationError}
+                </Text>
+              </Surface>
+            )}
 
             {selectedStation ? (
               <View style={styles.tideInfo}>

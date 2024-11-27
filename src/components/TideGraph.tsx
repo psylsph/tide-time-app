@@ -127,9 +127,9 @@ export const TideGraph: React.FC<TideGraphProps> = ({ tideData }) => {
   const yScale = useMemo(() => {
     const domain = d3.extent(graphData, d => d.height);
     return d3.scaleLinear()
-      .domain([Math.max(0, domain[0] - 0.5), domain[1] + 0.5])
+      .domain([Math.floor(Math.max(0, domain[0] - 0.5)), Math.ceil(domain[1] + 0.5)])
       .range([height - padding.bottom, padding.top])
-      .nice(3);
+      .nice();
   }, [graphData, height, padding]);
 
   const xScale = d3.scaleTime()
@@ -183,17 +183,37 @@ export const TideGraph: React.FC<TideGraphProps> = ({ tideData }) => {
               <Stop offset="1" stopColor={theme.colors.primary} stopOpacity="0.0" />
             </LinearGradient>
           </Defs>
-          {yScale.ticks(3).map((tick) => (
-            <Line
-              key={`grid-${tick}`}
-              x1={padding.left}
-              y1={yScale(tick)}
-              x2={width - padding.right}
-              y2={yScale(tick)}
-              stroke={theme.colors.outline}
-              strokeWidth="0.5"
-              opacity={0.2}
-            />
+          {yScale.ticks(5).map((tick) => (
+            <React.Fragment key={tick}>
+              <Line
+                x1={padding.left}
+                y1={yScale(tick)}
+                x2={width - padding.right}
+                y2={yScale(tick)}
+                stroke={theme.colors.outline}
+                strokeWidth="0.5"
+                opacity={0.2}
+              />
+              <Line
+                x1={padding.left - 5}
+                y1={yScale(tick)}
+                x2={padding.left}
+                y2={yScale(tick)}
+                stroke={theme.colors.outline}
+                strokeWidth="1"
+              />
+              <SvgText
+                x={padding.left - 15}
+                y={yScale(tick)}
+                textAnchor="end"
+                alignmentBaseline="middle"
+                fontSize="12"
+                fontFamily="Poppins_400Regular"
+                fill={theme.colors.onSurface}
+              >
+                {Math.round(tick)}m
+              </SvgText>
+            </React.Fragment>
           ))}
           <Path
             d={areaPath}
@@ -215,29 +235,6 @@ export const TideGraph: React.FC<TideGraphProps> = ({ tideData }) => {
             stroke={theme.colors.outline}
             strokeWidth="1"
           />
-          {yScale.ticks(3).map((tick) => (
-            <React.Fragment key={tick}>
-              <Line
-                x1={padding.left - 5}
-                y1={yScale(tick)}
-                x2={padding.left}
-                y2={yScale(tick)}
-                stroke={theme.colors.outline}
-                strokeWidth="1"
-              />
-              <SvgText
-                x={padding.left - 15}
-                y={yScale(tick)}
-                textAnchor="end"
-                alignmentBaseline="middle"
-                fontSize="12"
-                fontFamily="Poppins_400Regular"
-                fill={theme.colors.onSurface}
-              >
-                {tick.toFixed(1)}m
-              </SvgText>
-            </React.Fragment>
-          ))}
           {timeLabels.map(({ hour, time, label }) => (
             <SvgText
               key={hour}
