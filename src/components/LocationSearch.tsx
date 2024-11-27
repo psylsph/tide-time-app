@@ -30,6 +30,69 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
     setIsSearchFocused(false);
   }, [onLocationSelect]);
 
+  const styles = StyleSheet.create({
+    container: {
+      marginBottom: 16,
+    },
+    searchContainer: {
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    searchBar: {
+      elevation: 0,
+      borderRadius: 12,
+      backgroundColor: 'transparent',
+    },
+    searchInput: {
+      fontFamily: 'Poppins_400Regular',
+      fontSize: 16,
+      includeFontPadding: false,
+      textAlignVertical: 'center',
+    },
+    resultsContainer: {
+      marginTop: 8,
+      borderRadius: 12,
+      overflow: 'hidden',
+      backgroundColor: theme.colors.surface,
+      ...Platform.select({
+        android: {
+          elevation: 4,
+        },
+        web: {
+          boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.15)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+        },
+      }),
+    },
+    listItem: {
+      paddingVertical: 8,
+    },
+    listItemTitle: {
+      fontFamily: 'Poppins_500Medium',
+      fontSize: 16,
+      color: theme.colors.onSurface,
+    },
+    listItemDescription: {
+      fontFamily: 'Poppins_400Regular',
+      fontSize: 14,
+      color: theme.colors.onSurfaceVariant,
+    },
+    noResults: {
+      padding: 16,
+      alignItems: 'center',
+    },
+    noResultsText: {
+      fontFamily: 'Poppins_400Regular',
+      fontSize: 14,
+      color: theme.colors.onSurfaceVariant,
+    },
+  });
+
   return (
     <View style={styles.container}>
       <Surface style={[styles.searchContainer, { backgroundColor: theme.colors.surface }]}>
@@ -42,6 +105,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
           iconColor={theme.colors.primary}
           onFocus={() => setIsSearchFocused(true)}
           elevation={0}
+          placeholderTextColor={theme.colors.onSurfaceVariant}
           theme={{
             colors: {
               ...theme.colors,
@@ -57,8 +121,8 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
             filteredStations.map((station) => (
               <List.Item
                 key={station.id}
-                title={station.name}
-                description={station.region}
+                title={() => <Text style={styles.listItemTitle}>{station.name}</Text>}
+                description={() => <Text style={styles.listItemDescription}>{station.region}</Text>}
                 onPress={() => handleStationSelect(station)}
                 left={props => (
                   <List.Icon
@@ -73,24 +137,11 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
                     backgroundColor: 'rgba(30, 136, 229, 0.08)',
                   }
                 ]}
-                titleStyle={[
-                  styles.listItemTitle,
-                  station.id === currentStationId && {
-                    color: theme.colors.primary,
-                    fontWeight: '500',
-                  }
-                ]}
-                descriptionStyle={[
-                  styles.listItemDescription,
-                  station.id === currentStationId && {
-                    color: theme.colors.secondary,
-                  }
-                ]}
               />
             ))
           ) : (
             <View style={styles.noResults}>
-              <Text style={[styles.noResultsText, { color: theme.colors.secondary }]}>
+              <Text style={styles.noResultsText}>
                 No locations found
               </Text>
             </View>
@@ -100,80 +151,3 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 16,
-  },
-  searchContainer: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    ...Platform.select({
-      android: {
-        elevation: 4,
-      },
-      web: {
-        boxShadow: '0 2px 8px rgba(30, 136, 229, 0.1)',
-      },
-      ios: {
-        shadowColor: '#1E88E5',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-    }),
-  },
-  searchBar: {
-    backgroundColor: 'transparent',
-    elevation: 0,
-  },
-  searchInput: {
-    fontSize: 17,
-    letterSpacing: -0.41,
-  },
-  resultsContainer: {
-    marginTop: 8,
-    borderRadius: 16,
-    overflow: 'hidden',
-    maxHeight: 300,
-    backgroundColor: '#FFFFFF',
-    ...Platform.select({
-      android: {
-        elevation: 4,
-      },
-      web: {
-        boxShadow: '0 2px 8px rgba(30, 136, 229, 0.1)',
-      },
-      ios: {
-        shadowColor: '#1E88E5',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-    }),
-  },
-  listItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(30, 136, 229, 0.1)',
-  },
-  listItemTitle: {
-    fontSize: 17,
-    letterSpacing: -0.41,
-    marginBottom: 2,
-    color: '#1E88E5',
-  },
-  listItemDescription: {
-    fontSize: 15,
-    letterSpacing: -0.24,
-    color: '#64B5F6',
-  },
-  noResults: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  noResultsText: {
-    fontSize: 17,
-    letterSpacing: -0.41,
-  },
-});
