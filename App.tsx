@@ -1,16 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Dimensions, Platform } from 'react-native';
-import { Provider as PaperProvider, Text, IconButton, MD3LightTheme, Surface } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Platform, useWindowDimensions } from 'react-native';
+import { Provider as PaperProvider, Text, IconButton, MD3LightTheme } from 'react-native-paper';
 import { LocationSearch } from './src/components/LocationSearch';
 import { TideStation, ukTideStations } from './src/data/ukTideStations';
 import { getTideData } from './src/services/tideService';
+import { changeDate, canChangeDate } from './src/utils/dateUtils';
+import { CONTENT_BREAKPOINT, MAX_CONTENT_WIDTH } from './src/config/layout';
+import { elevation } from './src/styles/elevation';
+import type { TideEvent } from './src/types/tide';
 import { format } from 'date-fns';
 import { StatusBar } from 'expo-status-bar';
 import { TideGraph } from './src/components/TideGraph';
-import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+} from '@expo-google-fonts/poppins';
 import * as SplashScreen from 'expo-splash-screen';
-import * as Location from 'expo-location';
-import { findNearestStation } from './src/utils/locationUtils';
+import {
+  locateNearestStation,
+  LocationPermissionDeniedError,
+} from './src/services/locationService';
 
 const theme = {
   ...MD3LightTheme,
@@ -25,24 +37,21 @@ const theme = {
   },
   fonts: {
     ...MD3LightTheme.fonts,
-    regular: {
-      fontFamily: 'Poppins_400Regular',
-    },
-    medium: {
-      fontFamily: 'Poppins_500Medium',
-    },
-    bold: {
-      fontFamily: 'Poppins_700Bold',
-    },
+    regular: { fontFamily: 'Poppins_400Regular' },
+    medium: { fontFamily: 'Poppins_500Medium' },
+    semibold: { fontFamily: 'Poppins_600SemiBold' },
+    bold: { fontFamily: 'Poppins_700Bold' },
   },
 };
 
 export default function App() {
   const [selectedStation, setSelectedStation] = useState<TideStation | null>(null);
-  const [tideData, setTideData] = useState<any[]>([]);
+  const [tideData, setTideData] = useState<TideEvent[]>([]);
+  const [tideLoading, setTideLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [locationError, setLocationError] = useState<string | null>(null);
-  const windowWidth = Dimensions.get('window').width;
+  const [isDetecting, setIsDetecting] = useState(false);
+  const { width: windowWidth } = useWindowDimensions();
 
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -52,60 +61,74 @@ export default function App() {
   });
 
   useEffect(() => {
-    async function prepare() {
-      await SplashScreen.preventAutoHideAsync();
-    }
-    prepare();
-  }, []);
-
-  useEffect(() => {
-    async function getLocation() {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          setLocationError('Permission to access location was denied');
-          return;
-        }
-
-        const location = await Location.getCurrentPositionAsync({});
-        const nearest = findNearestStation(
-          location.coords.latitude,
-          location.coords.longitude,
-          ukTideStations
-        );
-
-        if (nearest) {
-          setSelectedStation(nearest);
-        }
-      } catch (error) {
-        setLocationError('Error getting location');
-        console.error('Location error:', error);
-      }
-    }
-
-    if (!selectedStation) {
-      getLocation();
-    }
+    SplashScreen.preventAutoHideAsync().catch((error: unknown) => {
+      console.error('Splash preventAutoHideAsync failed:', error);
+    });
   }, []);
 
   useEffect(() => {
     if (fontsLoaded) {
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch((error: unknown) => {
+        console.error('Splash hideAsync failed:', error);
+      });
     }
   }, [fontsLoaded]);
 
   useEffect(() => {
-    if (selectedStation) {
-      const data = getTideData(selectedStation.id, selectedDate);
-      setTideData(data);
+    if (!selectedStation) {
+      setTideData([]);
+      setTideLoading(false);
+      return;
     }
+
+    let cancelled = false;
+    setTideLoading(true);
+    getTideData(selectedStation.id, selectedDate)
+      .then(result => {
+        if (cancelled) return;
+        setTideData(result.events);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setTideData([]);
+      })
+      .finally(() => {
+        if (!cancelled) setTideLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedStation, selectedDate]);
 
-  const handleDateChange = (days: number) => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + days);
-    setSelectedDate(newDate);
+  const handleLocationSelect = (station: TideStation) => {
+    setSelectedStation(station);
   };
+
+  const handleDetectLocation = async () => {
+    setIsDetecting(true);
+    setLocationError(null);
+    try {
+      const { station } = await locateNearestStation(ukTideStations);
+      handleLocationSelect(station);
+    } catch (error) {
+      const message =
+        error instanceof LocationPermissionDeniedError
+          ? 'Location access denied. Please search for a beach instead.'
+          : "Couldn't get your location. Please search for a beach instead.";
+      setLocationError(message);
+    } finally {
+      setIsDetecting(false);
+    }
+  };
+
+  const handleDateChange = (days: number) => {
+    setSelectedDate(prev => changeDate(prev, days));
+  };
+
+  const canGoBack = canChangeDate(selectedDate, -1);
+  const canGoForward = canChangeDate(selectedDate, 1);
+  const contentWidth = windowWidth > CONTENT_BREAKPOINT ? MAX_CONTENT_WIDTH : windowWidth;
 
   if (!fontsLoaded) {
     return null;
@@ -115,45 +138,48 @@ export default function App() {
     <PaperProvider theme={theme}>
       <View style={styles.safeArea}>
         <StatusBar style="dark" />
-        
-        <Surface style={styles.header} elevation={0}>
+
+        <View style={[styles.header, elevation(2)]}>
           <View style={styles.headerContent}>
             <Text variant="headlineLarge" style={styles.headerTitle}>UK Tide Times</Text>
             {selectedStation && (
               <Text variant="titleMedium" style={styles.headerSubtitle}>{selectedStation.name}</Text>
             )}
           </View>
-        </Surface>
+        </View>
 
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.content, { width: windowWidth > 744 ? 680 : windowWidth }]}>
+          <View style={[styles.content, { width: contentWidth }]}>
 
             <LocationSearch
-              onLocationSelect={setSelectedStation}
+              onLocationSelect={handleLocationSelect}
               currentStationId={selectedStation?.id || ''}
+              onDetectLocation={handleDetectLocation}
+              isDetecting={isDetecting}
             />
 
-            {locationError && !selectedStation && (
-              <Surface style={[styles.welcomeCard, { marginBottom: 16 }]} elevation={0}>
+            {locationError && (
+              <View style={[styles.welcomeCard, { marginBottom: 16 }]}>
                 <Text style={[styles.welcomeText, { color: theme.colors.error }]}>
                   {locationError}
                 </Text>
-              </Surface>
+              </View>
             )}
 
             {selectedStation ? (
               <View style={styles.tideInfo}>
-                <View style={styles.dateNav}>
+                <View style={[styles.dateNav, elevation(2)]}>
                   <IconButton
                     icon="chevron-left"
                     mode="contained"
                     containerColor="rgba(30, 136, 229, 0.1)"
                     iconColor={theme.colors.primary}
                     size={24}
+                    disabled={!canGoBack}
                     onPress={() => handleDateChange(-1)}
                   />
                   <Text variant="titleMedium" style={styles.dateText}>
@@ -165,21 +191,22 @@ export default function App() {
                     containerColor="rgba(30, 136, 229, 0.1)"
                     iconColor={theme.colors.primary}
                     size={24}
+                    disabled={!canGoForward}
                     onPress={() => handleDateChange(1)}
                   />
                 </View>
 
-                <TideGraph tideData={tideData} />
+                <TideGraph tideData={tideData} loading={tideLoading} />
               </View>
             ) : (
-              <Surface style={styles.welcomeCard} elevation={0}>
+              <View style={[styles.welcomeCard, elevation(2)]}>
                 <Text variant="headlineSmall" style={styles.welcomeTitle}>
                   Welcome to UK Tide Times
                 </Text>
                 <Text variant="bodyLarge" style={styles.welcomeText}>
                   Select a location to view tide information
                 </Text>
-              </Surface>
+              </View>
             )}
           </View>
         </ScrollView>
@@ -204,20 +231,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(227, 242, 253, 0.92)',
     borderBottomWidth: 0.5,
     borderBottomColor: 'rgba(30, 136, 229, 0.2)',
-    ...Platform.select({
-      android: {
-        elevation: 4,
-      },
-      web: {
-        boxShadow: '0 2px 8px rgba(30, 136, 229, 0.1)',
-      },
-      ios: {
-        shadowColor: '#1E88E5',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-    }),
   },
   headerContent: {
     alignItems: 'center',
@@ -258,20 +271,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
-    ...Platform.select({
-      android: {
-        elevation: 4,
-      },
-      web: {
-        boxShadow: '0 2px 8px rgba(30, 136, 229, 0.1)',
-      },
-      ios: {
-        shadowColor: '#1E88E5',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-    }),
   },
   dateText: {
     fontFamily: 'Poppins_500Medium',
@@ -287,20 +286,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    ...Platform.select({
-      android: {
-        elevation: 4,
-      },
-      web: {
-        boxShadow: '0 2px 8px rgba(30, 136, 229, 0.1)',
-      },
-      ios: {
-        shadowColor: '#1E88E5',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-    }),
   },
   welcomeTitle: {
     fontFamily: 'Poppins_600SemiBold',

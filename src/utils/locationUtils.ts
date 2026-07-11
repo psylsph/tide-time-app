@@ -1,7 +1,7 @@
 import { TideStation } from '../data/ukTideStations';
 
-// Haversine formula to calculate distance between two points
-function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+// Haversine formula to calculate the great-circle distance between two points.
+export function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371; // Radius of the earth in km
   const dLat = deg2rad(lat2 - lat1);
   const dLon = deg2rad(lon2 - lon1);

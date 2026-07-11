@@ -1,23 +1,22 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, Dimensions, Platform } from 'react-native';
+import { View, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import Svg, { Path, Line, Text as SvgText, Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import * as d3 from 'd3';
 import { format, parseISO } from 'date-fns';
-
-interface TideEvent {
-  type: 'high' | 'low';
-  time: string;
-  height: number;
-}
+import type { TideEvent } from '../types/tide';
+import { interpolateTideCurve, createTimeLabels } from '../utils/tideCurve';
+import type { CurvePoint } from '../utils/tideCurve';
+import { elevation } from '../styles/elevation';
 
 interface TideGraphProps {
   tideData: TideEvent[];
+  loading?: boolean;
 }
 
-export const TideGraph: React.FC<TideGraphProps> = ({ tideData }) => {
+export const TideGraph: React.FC<TideGraphProps> = ({ tideData, loading = false }) => {
   const theme = useTheme();
-  const windowWidth = Dimensions.get('window').width;
+  const { width: windowWidth } = useWindowDimensions();
   const width = Math.min(windowWidth - 64, 600);
   const height = width * 0.5;
   const padding = { top: 30, right: 30, bottom: 40, left: 60 };
@@ -28,26 +27,28 @@ export const TideGraph: React.FC<TideGraphProps> = ({ tideData }) => {
       borderRadius: 16,
       backgroundColor: theme.colors.surface,
       marginVertical: 8,
-      ...Platform.select({
-        android: {
-          elevation: 4,
-        },
-        web: {
-          boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.15)',
-        },
-        default: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-        },
-      }),
+      ...elevation(2),
     },
     graphContainer: {
       aspectRatio: 2,
       marginVertical: 12,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    emptyState: {
+      height: height - padding.top - padding.bottom,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    emptyStateText: {
+      fontFamily: 'Poppins_400Regular',
+      fontSize: 14,
+      color: theme.colors.onSurfaceVariant,
+    },
+    loadingText: {
+      fontFamily: 'Poppins_400Regular',
+      fontSize: 14,
+      color: theme.colors.onSurfaceVariant,
     },
     timeLabel: {
       fontFamily: 'Poppins_400Regular',
@@ -86,64 +87,41 @@ export const TideGraph: React.FC<TideGraphProps> = ({ tideData }) => {
     },
   });
 
-  const graphData = useMemo(() => {
-    const points: { time: Date; height: number }[] = [];
-    const sortedData = [...tideData]
-      .map(d => ({ ...d, time: parseISO(d.time) }))
-      .sort((a, b) => a.time.getTime() - b.time.getTime());
-
-    if (sortedData.length < 2) return points;
-
-    const firstPoint = sortedData[0];
-    const lastPoint = sortedData[sortedData.length - 1];
-    const timeRange = lastPoint.time.getTime() - firstPoint.time.getTime();
-    const numPoints = 50;
-    const timeStep = timeRange / (numPoints - 1);
-
-    for (let i = 0; i < numPoints; i++) {
-      const currentTime = new Date(firstPoint.time.getTime() + i * timeStep);
-      let height = 0;
-
-      for (let j = 0; j < sortedData.length - 1; j++) {
-        const point1 = sortedData[j];
-        const point2 = sortedData[j + 1];
-        
-        if (currentTime >= point1.time && currentTime <= point2.time) {
-          const timeFraction = (currentTime.getTime() - point1.time.getTime()) /
-            (point2.time.getTime() - point1.time.getTime());
-          
-          height = point1.height + (point2.height - point1.height) * 
-            (Math.sin((timeFraction - 0.5) * Math.PI) * 0.5 + 0.5);
-          break;
-        }
-      }
-
-      points.push({ time: currentTime, height });
-    }
-
-    return points;
-  }, [tideData]);
+  const graphData = useMemo(() => interpolateTideCurve(tideData), [tideData]);
 
   const yScale = useMemo(() => {
-    const domain = d3.extent(graphData, d => d.height);
-    return d3.scaleLinear()
-      .domain([Math.floor(Math.max(0, domain[0] - 0.5)), Math.ceil(domain[1] + 0.5)])
+    if (graphData.length === 0) {
+      return d3.scaleLinear().domain([0, 1]).range([height - padding.bottom, padding.top]);
+    }
+    const heights = graphData.map(d => d.height);
+    const minH = Math.min(...heights);
+    const maxH = Math.max(...heights);
+    return d3
+      .scaleLinear()
+      .domain([Math.floor(Math.max(0, minH - 0.5)), Math.ceil(maxH + 0.5)])
       .range([height - padding.bottom, padding.top])
       .nice();
-  }, [graphData, height, padding]);
+  }, [graphData, height, padding.bottom, padding.top]);
 
-  const xScale = d3.scaleTime()
-    .domain(d3.extent(graphData, d => d.time) as [Date, Date])
-    .range([padding.left, width - padding.right]);
+  const xScale = useMemo(() => {
+    if (graphData.length === 0) {
+      return d3.scaleTime().domain([new Date(0), new Date(1)]).range([padding.left, width - padding.right]);
+    }
+    const start = graphData[0].time;
+    const end = graphData[graphData.length - 1].time;
+    return d3.scaleTime().domain([start, end]).range([padding.left, width - padding.right]);
+  }, [graphData, width, padding.left, padding.right]);
 
-  const line = d3.line<{ time: Date; height: number }>()
+  const line = d3
+    .line<CurvePoint>()
     .x(d => xScale(d.time))
     .y(d => yScale(d.height))
     .curve(d3.curveBasis);
 
   const path = line(graphData) || '';
 
-  const area = d3.area<{ time: Date; height: number }>()
+  const area = d3
+    .area<CurvePoint>()
     .x(d => xScale(d.time))
     .y0(height - padding.bottom)
     .y1(d => yScale(d.height))
@@ -152,152 +130,141 @@ export const TideGraph: React.FC<TideGraphProps> = ({ tideData }) => {
   const areaPath = area(graphData) || '';
 
   const timeLabels = useMemo(() => {
-    const startTime = xScale.domain()[0];
-    const endTime = xScale.domain()[1];
-    const hours = [];
-    
-    for (let hour = 0; hour <= 24; hour += 6) {
-      const time = new Date(startTime);
-      time.setHours(hour, 0, 0, 0);
-      
-      if (time >= startTime && time <= endTime) {
-        hours.push({
-          hour,
-          time,
-          label: format(time, 'HH:mm'),
-        });
-      }
-    }
-    
-    return hours;
-  }, [xScale]);
+    if (graphData.length === 0) return [];
+    return createTimeLabels(graphData[0].time, graphData[graphData.length - 1].time);
+  }, [graphData]);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Tide Levels</Text>
-      <View style={styles.graphContainer}>
-        <Svg width={width} height={height}>
-          <Defs>
-            <LinearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={theme.colors.primary} stopOpacity="0.2" />
-              <Stop offset="1" stopColor={theme.colors.primary} stopOpacity="0.0" />
-            </LinearGradient>
-          </Defs>
-          {yScale.ticks(5).map((tick) => (
-            <React.Fragment key={tick}>
+      {loading ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.loadingText}>Loading tides…</Text>
+        </View>
+      ) : graphData.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyStateText}>No tide data available</Text>
+        </View>
+      ) : (
+        <>
+          <View style={styles.graphContainer}>
+            <Svg width={width} height={height}>
+              <Defs>
+                <LinearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor={theme.colors.primary} stopOpacity="0.2" />
+                  <Stop offset="1" stopColor={theme.colors.primary} stopOpacity="0.0" />
+                </LinearGradient>
+              </Defs>
+              {yScale.ticks(5).map((tick) => (
+                <React.Fragment key={tick}>
+                  <Line
+                    x1={padding.left}
+                    y1={yScale(tick)}
+                    x2={width - padding.right}
+                    y2={yScale(tick)}
+                    stroke={theme.colors.outline}
+                    strokeWidth="0.5"
+                    opacity={0.2}
+                  />
+                  <Line
+                    x1={padding.left - 5}
+                    y1={yScale(tick)}
+                    x2={padding.left}
+                    y2={yScale(tick)}
+                    stroke={theme.colors.outline}
+                    strokeWidth="1"
+                  />
+                  <SvgText
+                    x={padding.left - 15}
+                    y={yScale(tick)}
+                    textAnchor="end"
+                    alignmentBaseline="middle"
+                    fontSize="12"
+                    fontFamily="Poppins_400Regular"
+                    fill={theme.colors.onSurface}
+                  >
+                    {Math.round(tick)}m
+                  </SvgText>
+                </React.Fragment>
+              ))}
+              <Path d={areaPath} fill="url(#areaGradient)" />
               <Line
                 x1={padding.left}
-                y1={yScale(tick)}
-                x2={width - padding.right}
-                y2={yScale(tick)}
-                stroke={theme.colors.outline}
-                strokeWidth="0.5"
-                opacity={0.2}
-              />
-              <Line
-                x1={padding.left - 5}
-                y1={yScale(tick)}
+                y1={padding.top}
                 x2={padding.left}
-                y2={yScale(tick)}
+                y2={height - padding.bottom}
                 stroke={theme.colors.outline}
                 strokeWidth="1"
               />
-              <SvgText
-                x={padding.left - 15}
-                y={yScale(tick)}
-                textAnchor="end"
-                alignmentBaseline="middle"
-                fontSize="12"
-                fontFamily="Poppins_400Regular"
-                fill={theme.colors.onSurface}
-              >
-                {Math.round(tick)}m
-              </SvgText>
-            </React.Fragment>
-          ))}
-          <Path
-            d={areaPath}
-            fill="url(#areaGradient)"
-          />
-          <Line
-            x1={padding.left}
-            y1={padding.top}
-            x2={padding.left}
-            y2={height - padding.bottom}
-            stroke={theme.colors.outline}
-            strokeWidth="1"
-          />
-          <Line
-            x1={padding.left}
-            y1={height - padding.bottom}
-            x2={width - padding.right}
-            y2={height - padding.bottom}
-            stroke={theme.colors.outline}
-            strokeWidth="1"
-          />
-          {timeLabels.map(({ hour, time, label }) => (
-            <SvgText
-              key={hour}
-              x={xScale(time)}
-              y={height - padding.bottom + 25}
-              textAnchor="middle"
-              fontSize="12"
-              fontFamily="Poppins_400Regular"
-              fill={theme.colors.onSurface}
-            >
-              {label}
-            </SvgText>
-          ))}
-          <Path
-            d={path}
-            stroke={theme.colors.primary}
-            strokeWidth="3"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          {tideData.map((tide, index) => {
-            const x = xScale(parseISO(tide.time));
-            const y = yScale(tide.height);
-            const isNearYAxis = x < padding.left + 40;
-            
-            return (
-              <React.Fragment key={index}>
-                <Circle
-                  cx={x}
-                  cy={y}
-                  r="6"
-                  fill={theme.colors.surface}
-                  stroke={theme.colors.primary}
-                  strokeWidth="2.5"
-                />
+              <Line
+                x1={padding.left}
+                y1={height - padding.bottom}
+                x2={width - padding.right}
+                y2={height - padding.bottom}
+                stroke={theme.colors.outline}
+                strokeWidth="1"
+              />
+              {timeLabels.map(({ hour, time, label }) => (
                 <SvgText
-                  x={x + (isNearYAxis ? 15 : 0)}
-                  y={y - 15}
-                  textAnchor={isNearYAxis ? "start" : "middle"}
-                  fontSize="13"
-                  fontFamily="Poppins_500Medium"
-                  fill={theme.colors.primary}
+                  key={hour}
+                  x={xScale(time)}
+                  y={height - padding.bottom + 25}
+                  textAnchor="middle"
+                  fontSize="12"
+                  fontFamily="Poppins_400Regular"
+                  fill={theme.colors.onSurface}
                 >
-                  {tide.height.toFixed(1)}m
+                  {label}
                 </SvgText>
-              </React.Fragment>
-            );
-          })}
-        </Svg>
-      </View>
-      <View style={styles.tideReadingsContainer}>
-        {tideData.map((tide, index) => (
-          <View key={index} style={styles.tideReading}>
-            <Text style={styles.tideTime}>
-              {format(parseISO(tide.time), 'HH:mm')}
-            </Text>
-            <Text style={styles.tideHeight}>
-              {tide.height.toFixed(1)}m
-            </Text>
+              ))}
+              <Path
+                d={path}
+                stroke={theme.colors.primary}
+                strokeWidth="3"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {tideData.map((tide, index) => {
+                const x = xScale(parseISO(tide.time));
+                const y = yScale(tide.height);
+                const isNearYAxis = x < padding.left + 40;
+
+                return (
+                  <React.Fragment key={index}>
+                    <Circle
+                      cx={x}
+                      cy={y}
+                      r="6"
+                      fill={theme.colors.surface}
+                      stroke={theme.colors.primary}
+                      strokeWidth="2.5"
+                    />
+                    <SvgText
+                      x={x + (isNearYAxis ? 15 : 0)}
+                      y={y - 15}
+                      textAnchor={isNearYAxis ? 'start' : 'middle'}
+                      fontSize="13"
+                      fontFamily="Poppins_500Medium"
+                      fill={theme.colors.primary}
+                    >
+                      {tide.height.toFixed(1)}m
+                    </SvgText>
+                  </React.Fragment>
+                );
+              })}
+            </Svg>
           </View>
-        ))}
-      </View>
+          <View style={styles.tideReadingsContainer}>
+            {tideData.map((tide, index) => (
+              <View key={index} style={styles.tideReading}>
+                <Text style={styles.tideTime}>{format(parseISO(tide.time), 'HH:mm')}</Text>
+                <Text style={styles.tideHeight}>{tide.height.toFixed(1)}m</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
     </View>
   );
 };

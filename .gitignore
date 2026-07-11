@@ -37,3 +37,7 @@ yarn-error.*
 
 # Local Netlify folder
 .netlify
+
+# secrets / local env
+.env
+.env.*

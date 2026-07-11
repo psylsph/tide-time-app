@@ -1,9 +1,21 @@
+# Export the web bundle only (skip iOS/Android Hermes bundles — unnecessary on a
+# web host and a common cause of CI build failures). Output goes to `dist/`
+# (expo's default), so publish that directory.
 [build]
-  command = "expo export"
-  publish = "dist/web"
-  
+  command = "expo export -p web"
+  publish = "dist"
+
 [build.environment]
   NODE_VERSION = "18"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Stormglass API key. Set in the Netlify dashboard (Site settings > Environment
+# variables) — never commit it. For local dev, put it in a gitignored .env file
+# and run via `netlify dev`.
+# STORMGLASS_API_KEY = "..."
 
 [[redirects]]
   from = "/*"
