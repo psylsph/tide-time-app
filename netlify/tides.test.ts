@@ -3,7 +3,7 @@ import handler, {
   dateToUnixDayRange,
   buildStormglassUrl,
   normaliseStormglassExtremes,
-} from './tides';
+} from './functions/tides';
 
 const PORTSMOUTH = getStationById('0032')!;
 
