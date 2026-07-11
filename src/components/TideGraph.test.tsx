@@ -58,4 +58,19 @@ describe('TideGraph', () => {
     renderWith(<TideGraph tideData={[]} />);
     expect(screen.queryByText('6.0m')).toBeNull();
   });
+
+  it('renders negative low-tide heights (below mean sea level) in the footer', () => {
+    const negativeDay: TideEvent[] = [
+      event('high', 6, 1.3),
+      event('low', 12, -1.4),
+      event('high', 18, 1.4),
+      event('low', 23, -1.5),
+    ];
+    renderWith(<TideGraph tideData={negativeDay} />);
+    // Negative values must flow through to the UI, not be clipped or hidden.
+    expect(screen.getByText('-1.4m')).toBeTruthy();
+    expect(screen.getByText('-1.5m')).toBeTruthy();
+    expect(screen.getByText('1.3m')).toBeTruthy();
+    expect(screen.getByText('1.4m')).toBeTruthy();
+  });
 });

@@ -5,7 +5,7 @@ import Svg, { Path, Line, Text as SvgText, Circle, Defs, LinearGradient, Stop } 
 import * as d3 from 'd3';
 import { format, parseISO } from 'date-fns';
 import type { TideEvent } from '../types/tide';
-import { interpolateTideCurve, createTimeLabels } from '../utils/tideCurve';
+import { interpolateTideCurve, createTimeLabels, computeHeightDomain } from '../utils/tideCurve';
 import type { CurvePoint } from '../utils/tideCurve';
 import { elevation } from '../styles/elevation';
 
@@ -93,15 +93,22 @@ export const TideGraph: React.FC<TideGraphProps> = ({ tideData, loading = false 
     if (graphData.length === 0) {
       return d3.scaleLinear().domain([0, 1]).range([height - padding.bottom, padding.top]);
     }
-    const heights = graphData.map(d => d.height);
-    const minH = Math.min(...heights);
-    const maxH = Math.max(...heights);
+    const [minHeight, maxHeight] = computeHeightDomain(graphData.map(d => d.height));
     return d3
       .scaleLinear()
-      .domain([Math.floor(Math.max(0, minH - 0.5)), Math.ceil(maxH + 0.5)])
+      .domain([minHeight, maxHeight])
       .range([height - padding.bottom, padding.top])
       .nice();
   }, [graphData, height, padding.bottom, padding.top]);
+
+  // Mean sea level is the 0 m datum. Draw a reference line at y = 0 so low tides
+  // below sea level (negative heights) read clearly against the chart's own
+  // baseline. Only drawn when 0 m actually sits inside the plotted range.
+  const seaLevelY = yScale(0);
+  const showSeaLevel =
+    graphData.length > 0 &&
+    seaLevelY > padding.top + 2 &&
+    seaLevelY < height - padding.bottom - 2;
 
   const xScale = useMemo(() => {
     if (graphData.length === 0) {
@@ -217,6 +224,30 @@ export const TideGraph: React.FC<TideGraphProps> = ({ tideData, loading = false 
                   {label}
                 </SvgText>
               ))}
+              {showSeaLevel && (
+                <>
+                  <Line
+                    x1={padding.left}
+                    y1={seaLevelY}
+                    x2={width - padding.right}
+                    y2={seaLevelY}
+                    stroke={theme.colors.outline}
+                    strokeWidth="1"
+                    strokeDasharray="4 4"
+                    opacity={0.6}
+                  />
+                  <SvgText
+                    x={width - padding.right}
+                    y={seaLevelY - 5}
+                    textAnchor="end"
+                    fontSize="10"
+                    fontFamily="Poppins_400Regular"
+                    fill={theme.colors.onSurfaceVariant}
+                  >
+                    MSL
+                  </SvgText>
+                </>
+              )}
               <Path
                 d={path}
                 stroke={theme.colors.primary}

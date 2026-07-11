@@ -92,3 +92,18 @@ export function createTimeLabels(start: Date, end: Date, stepHours = 6): TimeLab
 
   return labels;
 }
+
+/**
+ * The y-axis domain (min/max height in metres) for the tide graph, padded by
+ * ~0.5 m and rounded to whole metres. The lower bound is intentionally **not**
+ * clamped at 0: real low tides fall below mean sea level (negative heights) and
+ * must appear on the chart rather than being clipped below the baseline.
+ *
+ * Returns `[0, 1]` for empty input (the graph renders its empty state anyway).
+ */
+export function computeHeightDomain(heights: number[]): [number, number] {
+  if (heights.length === 0) return [0, 1];
+  const min = Math.min(...heights);
+  const max = Math.max(...heights);
+  return [Math.floor(min - 0.5), Math.ceil(max + 0.5)];
+}

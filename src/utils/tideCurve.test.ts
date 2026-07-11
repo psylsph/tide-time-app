@@ -1,4 +1,4 @@
-import { interpolateTideCurve, createTimeLabels, tideEase } from './tideCurve';
+import { interpolateTideCurve, createTimeLabels, tideEase, computeHeightDomain } from './tideCurve';
 import type { TideEvent } from '../types/tide';
 
 function event(type: 'high' | 'low', hour: number, height: number): TideEvent {
@@ -140,5 +140,29 @@ describe('createTimeLabels', () => {
       expect(l.time.getTime()).toBeGreaterThanOrEqual(dayStart.getTime());
       expect(l.time.getTime()).toBeLessThanOrEqual(dayEnd.getTime());
     }
+  });
+});
+
+describe('computeHeightDomain', () => {
+  it('returns [0, 1] for empty input', () => {
+    expect(computeHeightDomain([])).toEqual([0, 1]);
+  });
+
+  it('allows the lower bound to go negative (low tides below sea level)', () => {
+    // Regression: previously clamped at 0, clipping negative low tides off the
+    // bottom of the chart and making the graph look broken.
+    const [min] = computeHeightDomain([1.3, -1.4, 1.4, -1.5]);
+    expect(min).toBeLessThan(0);
+    expect(min).toBe(-2); // floor(-1.5 - 0.5)
+  });
+
+  it('pads by ~0.5 m and rounds to whole metres', () => {
+    expect(computeHeightDomain([1.3, -1.4])).toEqual([-2, 2]);
+    expect(computeHeightDomain([6.0, 1.0, 5.5, 0.8])).toEqual([0, 7]);
+  });
+
+  it('keeps a non-negative floor when all tides are above sea level', () => {
+    const [min] = computeHeightDomain([0.8, 6.0]);
+    expect(min).toBe(0); // floor(0.8 - 0.5) = floor(0.3) = 0
   });
 });
