@@ -1,37 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background Circle -->
-  <circle cx="256" cy="256" r="256" fill="#E3F2FD"/>
-  
-  <!-- Wave Pattern -->
-  <path d="M96 256C144 256 144 224 192 224C240 224 240 256 288 256C336 256 336 224 384 224C432 224 432 256 480 256" 
-        stroke="#0D47A1" 
-        stroke-width="32" 
-        stroke-linecap="round"
-        fill="none">
-    <animate attributeName="d" 
-             dur="3s" 
-             repeatCount="indefinite" 
-             values="
-               M96 256C144 256 144 224 192 224C240 224 240 256 288 256C336 256 336 224 384 224C432 224 432 256 480 256;
-               M96 256C144 256 144 288 192 288C240 288 240 256 288 256C336 256 336 288 384 288C432 288 432 256 480 256;
-               M96 256C144 256 144 224 192 224C240 224 240 256 288 256C336 256 336 224 384 224C432 224 432 256 480 256"
-    />
-  </path>
-  
-  <!-- Second Wave -->
-  <path d="M32 320C80 320 80 288 128 288C176 288 176 320 224 320C272 320 272 288 320 288C368 288 368 320 416 320" 
-        stroke="#1976D2" 
-        stroke-width="24" 
-        stroke-linecap="round"
-        fill="none">
-    <animate attributeName="d" 
-             dur="2.5s" 
-             repeatCount="indefinite" 
-             values="
-               M32 320C80 320 80 288 128 288C176 288 176 320 224 320C272 320 272 288 320 288C368 288 368 320 416 320;
-               M32 320C80 320 80 352 128 352C176 352 176 320 224 320C272 320 272 352 320 352C368 352 368 320 416 320;
-               M32 320C80 320 80 288 128 288C176 288 176 320 224 320C272 320 272 288 320 288C368 288 368 320 416 320"
-    />
-  </path>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky" x1="116" y1="70" x2="894" y2="954" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#071417"/>
+      <stop offset="0.55" stop-color="#123034"/>
+      <stop offset="1" stop-color="#1E4A49"/>
+    </linearGradient>
+    <radialGradient id="sunGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(760 274) rotate(90) scale(222)">
+      <stop stop-color="#F4D594" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#F4D594" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ocean" x1="512" y1="520" x2="512" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#397F7A"/>
+      <stop offset="1" stop-color="#102C31"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="105" y1="558" x2="925" y2="720" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D9F0EA"/>
+      <stop offset="0.48" stop-color="#8FC9C1"/>
+      <stop offset="1" stop-color="#5EA9A2"/>
+    </linearGradient>
+    <filter id="shadow" x="44" y="448" width="940" height="360" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="22" stdDeviation="20" flood-color="#02090A" flood-opacity="0.42"/>
+    </filter>
+  </defs>
+
+  <!-- Full-bleed, opaque artwork; iOS applies its own corner mask. -->
+  <rect width="1024" height="1024" fill="url(#sky)"/>
+  <circle cx="760" cy="274" r="222" fill="url(#sunGlow)"/>
+  <circle cx="760" cy="274" r="91" fill="#F2C879"/>
+  <circle cx="732" cy="247" r="22" fill="#FFE6AC" fill-opacity="0.55"/>
+
+  <!-- A calm horizon gives the mark depth at large icon sizes. -->
+  <path d="M0 608C132 548 243 553 357 612C481 676 594 682 711 604C814 536 915 542 1024 592V1024H0V608Z" fill="url(#ocean)"/>
+  <path d="M0 624C132 564 243 569 357 628C481 692 594 698 711 620C814 552 915 558 1024 608" stroke="#79B6AF" stroke-opacity="0.35" stroke-width="12"/>
+
+  <!-- One bold tidal curve remains clear at small iOS icon sizes. -->
+  <g filter="url(#shadow)">
+    <path d="M104 650C203 650 228 539 342 539C458 539 470 690 596 690C720 690 735 548 920 548" stroke="url(#wave)" stroke-width="76" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M104 637C203 637 228 526 342 526C458 526 470 677 596 677C720 677 735 535 920 535" stroke="#F2FAF7" stroke-opacity="0.28" stroke-width="14" stroke-linecap="round"/>
+  </g>
+
+  <!-- High and low water points subtly echo the in-app graph. -->
+  <circle cx="342" cy="539" r="22" fill="#F7FCFA"/>
+  <circle cx="596" cy="690" r="22" fill="#F7FCFA"/>
 </svg>
