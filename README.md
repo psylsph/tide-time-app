@@ -13,7 +13,9 @@ the app automatically falls back to deterministic demo data and shows a clear
 
 - Live high/low tide predictions for 60+ UK locations (Stormglass)
 - Automatic, clearly-labelled demo-data fallback when live data is unavailable
-- Tide graph with high/low water markers
+- Interactive rolling 24-hour tide graph with drag-to-estimate levels
+- Current weather plus a six-hour outlook for the selected location
+- Wind speed, gusts and direction, rain chance, UV and solar radiation
 - Smart location search with autocomplete
 - "Use my location" button — finds your nearest beach on demand (opt-in;
   no permission is requested until you tap it). Works on iOS, Android and web.
@@ -129,7 +131,8 @@ npm test
 - `netlify/functions/tides.ts` — live Stormglass proxy (serverless).
 - `src/components/` — React components (`LocationSearch`, `TideGraph`).
 - `src/services/` — domain logic (`tideService`: live fetch + demo fallback;
-  `locationService`: opt-in nearest-beach detection).
+  `weatherService`: Open-Meteo forecast; `locationService`: opt-in nearest-beach
+  detection).
 - `src/utils/` — pure helpers (`locationUtils`, `tideCurve`, `dateUtils`).
 - `src/data/` — the UK tide station dataset.
 - `src/types/` — shared TypeScript types.
@@ -167,5 +170,6 @@ This project is licensed under the MIT License.
 ## Acknowledgments
 
 - Live tide data: [Stormglass](https://stormglass.io).
+- Weather forecasts: [Open-Meteo](https://open-meteo.com/).
 - Tide station catalogue inspired by UK Admiralty EasyTide.
 - Built with Expo and React Native Paper.

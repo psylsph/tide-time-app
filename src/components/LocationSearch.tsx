@@ -70,24 +70,32 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
 
   const styles = StyleSheet.create({
     container: {
-      marginBottom: 16,
+      width: '100%',
+      maxWidth: '100%',
+      marginBottom: 8,
+      alignSelf: 'stretch',
     },
     searchContainer: {
+      width: '100%',
+      maxWidth: '100%',
       flexDirection: 'row',
       alignItems: 'center',
       borderRadius: 12,
       paddingHorizontal: 12,
       backgroundColor: theme.colors.surface,
-      ...elevation(2),
+      borderWidth: 1,
+      borderColor: theme.colors.outline,
+      ...elevation(1),
     },
     magnifier: {
       marginRight: 8,
     },
     searchInput: {
       flex: 1,
-      paddingVertical: 12,
+      minWidth: 0,
+      paddingVertical: 8,
       fontFamily: 'Poppins_400Regular',
-      fontSize: 16,
+      fontSize: 14,
       color: theme.colors.onSurface,
     },
     detectButton: {
@@ -95,11 +103,15 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
       padding: 4,
     },
     resultsContainer: {
+      width: '100%',
+      maxWidth: '100%',
       marginTop: 8,
       borderRadius: 12,
       overflow: 'hidden',
       backgroundColor: theme.colors.surface,
-      ...elevation(2),
+      borderWidth: 1,
+      borderColor: theme.colors.outline,
+      ...elevation(1),
     },
     listItem: {
       flexDirection: 'row',
@@ -170,7 +182,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
         )}
       </View>
 
-      {isSearchFocused && searchQuery && (
+      {isSearchFocused && searchQuery.length > 0 && (
         <View style={styles.resultsContainer}>
           {filteredStations.length > 0 ? (
             filteredStations.map(station => {
@@ -180,7 +192,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
                   key={station.id}
                   testID={`station-${station.id}`}
                   onPress={() => handleStationSelect(station)}
-                  style={[styles.listItem, selected && { backgroundColor: 'rgba(30, 136, 229, 0.08)' }]}
+                  style={[styles.listItem, selected && { backgroundColor: theme.colors.surfaceVariant }]}
                 >
                   <View
                     style={[

@@ -15,6 +15,12 @@ export interface TimeLabel {
   label: string;
 }
 
+interface ParsedTideEvent {
+  type: TideEvent['type'];
+  time: Date;
+  height: number;
+}
+
 /**
  * Ease a fraction (0..1) between two tide events using a half-sine so the curve
  * flattens near high/low water and is steepest mid-between them — i.e. it looks
@@ -68,6 +74,77 @@ export function interpolateTideCurve(
   }
 
   return points;
+}
+
+/**
+ * Build an interpolated curve for an exact time window. When the supplied
+ * calendar-day events do not cover a boundary, adjacent extrema are projected
+ * from the typical event spacing and average high/low levels.
+ */
+export function interpolateTideWindow(
+  events: TideEvent[],
+  start: Date,
+  end: Date,
+  numPoints: number = DEFAULT_CURVE_POINTS,
+): CurvePoint[] {
+  const sorted: ParsedTideEvent[] = [...events]
+    .map(event => ({ ...event, time: parseISO(event.time) }))
+    .sort((a, b) => a.time.getTime() - b.time.getTime());
+  const duration = end.getTime() - start.getTime();
+  if (sorted.length < 2 || duration <= 0 || numPoints < 2) return [];
+
+  const gaps = sorted.slice(1).map((event, index) => event.time.getTime() - sorted[index].time.getTime());
+  const validGaps = gaps.filter(gap => gap > 0).sort((a, b) => a - b);
+  if (validGaps.length === 0) return [];
+  const gap = validGaps[Math.floor(validGaps.length / 2)];
+  const averageHeight = (type: TideEvent['type']) => {
+    const matching = sorted.filter(event => event.type === type);
+    if (matching.length === 0) {
+      return sorted.reduce((sum, event) => sum + event.height, 0) / sorted.length;
+    }
+    return matching.reduce((sum, event) => sum + event.height, 0) / matching.length;
+  };
+  const timeline = [...sorted];
+
+  while (timeline[0].time.getTime() > start.getTime()) {
+    const first = timeline[0];
+    const type = first.type === 'high' ? 'low' : 'high';
+    timeline.unshift({ type, height: averageHeight(type), time: new Date(first.time.getTime() - gap) });
+  }
+  while (timeline[timeline.length - 1].time.getTime() < end.getTime()) {
+    const last = timeline[timeline.length - 1];
+    const type = last.type === 'high' ? 'low' : 'high';
+    timeline.push({ type, height: averageHeight(type), time: new Date(last.time.getTime() + gap) });
+  }
+
+  const points: CurvePoint[] = [];
+  let segment = 0;
+  for (let i = 0; i < numPoints; i++) {
+    const time = new Date(start.getTime() + (duration * i) / (numPoints - 1));
+    while (segment < timeline.length - 2 && time.getTime() > timeline[segment + 1].time.getTime()) {
+      segment += 1;
+    }
+    const previous = timeline[segment];
+    const next = timeline[segment + 1];
+    const fraction = (time.getTime() - previous.time.getTime()) /
+      (next.time.getTime() - previous.time.getTime());
+    points.push({
+      time,
+      height: previous.height + (next.height - previous.height) * tideEase(fraction),
+    });
+  }
+  return points;
+}
+
+/** Build labels at exact intervals from the beginning of a rolling window. */
+export function createRollingTimeLabels(start: Date, end: Date, stepHours = 4): TimeLabel[] {
+  const labels: TimeLabel[] = [];
+  let hour = 0;
+  for (let time = start; time.getTime() <= end.getTime(); time = addHours(time, stepHours)) {
+    labels.push({ hour, time, label: format(time, 'HH:mm') });
+    hour += stepHours;
+  }
+  return labels;
 }
 
 /**

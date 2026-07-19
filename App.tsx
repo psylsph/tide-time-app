@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Platform, useWindowDimensions } from 'react-native';
-import { Provider as PaperProvider, Text, IconButton, MD3LightTheme } from 'react-native-paper';
+import { ThemeProvider, Text, IconButton, MD3DarkTheme } from 'react-native-paper';
 import { LocationSearch } from './src/components/LocationSearch';
 import { TideStation, ukTideStations } from './src/data/ukTideStations';
 import { getTideData } from './src/services/tideService';
@@ -11,6 +11,8 @@ import type { TideEvent } from './src/types/tide';
 import { format } from 'date-fns';
 import { StatusBar } from 'expo-status-bar';
 import { TideGraph } from './src/components/TideGraph';
+import { TideNow } from './src/components/TideNow';
+import { WeatherPanel } from './src/components/WeatherPanel';
 import {
   useFonts,
   Poppins_400Regular,
@@ -25,18 +27,22 @@ import {
 } from './src/services/locationService';
 
 const theme = {
-  ...MD3LightTheme,
+  ...MD3DarkTheme,
+  dark: true,
   colors: {
-    ...MD3LightTheme.colors,
-    primary: '#1E88E5',
-    secondary: '#64B5F6',
-    background: '#E3F2FD',
-    surface: '#FFFFFF',
-    surfaceVariant: '#F5F5F5',
-    error: '#B00020',
+    ...MD3DarkTheme.colors,
+    primary: '#8FC9C1',
+    secondary: '#A6BBB6',
+    background: '#0B1214',
+    surface: '#142024',
+    surfaceVariant: '#1D2B2F',
+    onSurface: '#F2F6F4',
+    onSurfaceVariant: '#B9C7C3',
+    outline: '#405156',
+    error: '#FFB4AB',
   },
   fonts: {
-    ...MD3LightTheme.fonts,
+    ...MD3DarkTheme.fonts,
     regular: { fontFamily: 'Poppins_400Regular' },
     medium: { fontFamily: 'Poppins_500Medium' },
     semibold: { fontFamily: 'Poppins_600SemiBold' },
@@ -129,21 +135,29 @@ export default function App() {
   const canGoBack = canChangeDate(selectedDate, -1);
   const canGoForward = canChangeDate(selectedDate, 1);
   const contentWidth = windowWidth > CONTENT_BREAKPOINT ? MAX_CONTENT_WIDTH : windowWidth;
+  const graphCenter = new Date(selectedDate);
+  const currentTime = new Date();
+  graphCenter.setHours(
+    currentTime.getHours(),
+    currentTime.getMinutes(),
+    currentTime.getSeconds(),
+    0,
+  );
 
   if (!fontsLoaded) {
     return null;
   }
 
   return (
-    <PaperProvider theme={theme}>
+    <ThemeProvider theme={theme}>
       <View style={styles.safeArea}>
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
 
         <View style={[styles.header, elevation(2)]}>
           <View style={styles.headerContent}>
-            <Text variant="headlineLarge" style={styles.headerTitle}>UK Tide Times</Text>
+            <Text style={styles.headerTitle}>UK Tide Times</Text>
             {selectedStation && (
-              <Text variant="titleMedium" style={styles.headerSubtitle}>{selectedStation.name}</Text>
+              <Text style={styles.headerSubtitle} numberOfLines={1}>{selectedStation.name}</Text>
             )}
           </View>
         </View>
@@ -172,13 +186,17 @@ export default function App() {
 
             {selectedStation ? (
               <View style={styles.tideInfo}>
-                <View style={[styles.dateNav, elevation(2)]}>
+                <TideNow tideData={tideData} loading={tideLoading} />
+                <WeatherPanel station={selectedStation} />
+
+                <View style={[styles.dateNav, elevation(1)]}>
                   <IconButton
                     icon="chevron-left"
                     mode="contained"
-                    containerColor="rgba(30, 136, 229, 0.1)"
+                    containerColor="rgba(143, 201, 193, 0.12)"
                     iconColor={theme.colors.primary}
-                    size={24}
+                    size={20}
+                    style={styles.dateButton}
                     disabled={!canGoBack}
                     onPress={() => handleDateChange(-1)}
                   />
@@ -188,15 +206,20 @@ export default function App() {
                   <IconButton
                     icon="chevron-right"
                     mode="contained"
-                    containerColor="rgba(30, 136, 229, 0.1)"
+                    containerColor="rgba(143, 201, 193, 0.12)"
                     iconColor={theme.colors.primary}
-                    size={24}
+                    size={20}
+                    style={styles.dateButton}
                     disabled={!canGoForward}
                     onPress={() => handleDateChange(1)}
                   />
                 </View>
 
-                <TideGraph tideData={tideData} loading={tideLoading} />
+                <TideGraph
+                  tideData={tideData}
+                  loading={tideLoading}
+                  centerTime={graphCenter}
+                />
               </View>
             ) : (
               <View style={[styles.welcomeCard, elevation(2)]}>
@@ -211,43 +234,46 @@ export default function App() {
           </View>
         </ScrollView>
       </View>
-    </PaperProvider>
+    </ThemeProvider>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#0B1214',
   },
   header: {
     paddingHorizontal: 16,
     paddingTop: Platform.select({
-      ios: 60,
-      android: 48,
-      default: 24,
+      ios: 48,
+      android: 34,
+      default: 10,
     }),
-    paddingBottom: 16,
-    backgroundColor: 'rgba(227, 242, 253, 0.92)',
-    borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(30, 136, 229, 0.2)',
+    paddingBottom: 7,
+    backgroundColor: '#101A1D',
+    borderBottomWidth: 1,
+    borderBottomColor: '#29383C',
   },
   headerContent: {
+    minHeight: 28,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
   },
   headerTitle: {
     fontFamily: 'Poppins_700Bold',
-    fontSize: 32,
-    letterSpacing: 0.25,
-    color: '#1E88E5',
-    textAlign: 'center',
+    fontSize: 22,
+    lineHeight: 28,
+    color: '#F2F6F4',
   },
   headerSubtitle: {
+    flexShrink: 1,
     fontFamily: 'Poppins_500Medium',
-    fontSize: 18,
-    color: '#64B5F6',
-    marginTop: 4,
-    textAlign: 'center',
+    fontSize: 13,
+    color: '#B9C7C3',
+    textAlign: 'right',
   },
   scrollView: {
     flex: 1,
@@ -255,10 +281,12 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     alignItems: 'center',
-    paddingBottom: 24,
+    paddingBottom: 8,
   },
   content: {
-    padding: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    maxWidth: '100%',
   },
   tideInfo: {
     width: '100%',
@@ -267,35 +295,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 8,
-    marginBottom: 16,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    padding: 2,
+    marginBottom: 8,
+    borderRadius: 12,
+    backgroundColor: '#142024',
+    borderWidth: 1,
+    borderColor: '#405156',
+  },
+  dateButton: {
+    margin: 2,
   },
   dateText: {
     fontFamily: 'Poppins_500Medium',
     flex: 1,
     textAlign: 'center',
-    color: '#1E88E5',
-    fontSize: 16,
+    color: '#D8E7E3',
+    fontSize: 14,
     letterSpacing: 0,
   },
   welcomeCard: {
-    padding: 24,
-    marginTop: 24,
+    padding: 20,
+    marginTop: 16,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#142024',
     alignItems: 'center',
   },
   welcomeTitle: {
     fontFamily: 'Poppins_600SemiBold',
     textAlign: 'center',
     marginBottom: 8,
-    color: '#1E88E5',
+    color: '#F2F6F4',
   },
   welcomeText: {
     fontFamily: 'Poppins_400Regular',
     textAlign: 'center',
-    color: '#64B5F6',
+    color: '#B9C7C3',
   },
 });

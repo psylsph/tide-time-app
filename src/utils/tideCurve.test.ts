@@ -1,4 +1,11 @@
-import { interpolateTideCurve, createTimeLabels, tideEase, computeHeightDomain } from './tideCurve';
+import {
+  interpolateTideCurve,
+  interpolateTideWindow,
+  createTimeLabels,
+  createRollingTimeLabels,
+  tideEase,
+  computeHeightDomain,
+} from './tideCurve';
 import type { TideEvent } from '../types/tide';
 
 function event(type: 'high' | 'low', hour: number, height: number): TideEvent {
@@ -100,6 +107,39 @@ describe('interpolateTideCurve', () => {
     const expected = interpolateTideCurve(FOUR_EVENTS, 50);
     expect(sorted[0].time.getTime()).toBe(expected[0].time.getTime());
     expect(sorted[49].time.getTime()).toBe(expected[49].time.getTime());
+  });
+});
+
+describe('interpolateTideWindow', () => {
+  it('always spans the requested rolling 24-hour window', () => {
+    const center = new Date(2026, 6, 11, 12, 0, 0);
+    const start = new Date(2026, 6, 11, 0, 0, 0);
+    const end = new Date(2026, 6, 12, 0, 0, 0);
+    const points = interpolateTideWindow(FOUR_EVENTS, start, end, 145);
+
+    expect(points).toHaveLength(145);
+    expect(points[0].time.getTime()).toBe(center.getTime() - 12 * 60 * 60 * 1000);
+    expect(points[points.length - 1].time.getTime()).toBe(center.getTime() + 12 * 60 * 60 * 1000);
+    expect(points.every(point => Number.isFinite(point.height))).toBe(true);
+  });
+
+  it('projects tide levels beyond the supplied final event', () => {
+    const start = new Date(2026, 6, 11, 12, 0, 0);
+    const end = new Date(2026, 6, 12, 12, 0, 0);
+    const points = interpolateTideWindow(FOUR_EVENTS, start, end, 50);
+    expect(points[points.length - 1].time.getTime()).toBe(end.getTime());
+    expect(Number.isFinite(points[points.length - 1].height)).toBe(true);
+  });
+});
+
+describe('createRollingTimeLabels', () => {
+  it('creates 4-hour slots across a 24-hour window', () => {
+    const start = new Date(2026, 6, 11, 1, 30, 0);
+    const end = new Date(2026, 6, 12, 1, 30, 0);
+    const labels = createRollingTimeLabels(start, end);
+    expect(labels.map(label => label.label)).toEqual([
+      '01:30', '05:30', '09:30', '13:30', '17:30', '21:30', '01:30',
+    ]);
   });
 });
 
